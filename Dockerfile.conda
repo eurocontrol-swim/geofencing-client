@@ -1,0 +1,22 @@
+# For developing reasons
+
+FROM swim-base.old
+
+LABEL maintainer="SWIM EUROCONTROL <http://www.eurocontrol.int>"
+
+ENV PATH="$PATH:/opt/conda/envs/app/bin"
+
+RUN mkdir -p /app
+WORKDIR /app
+
+COPY requirements.yml requirements.yml
+RUN conda env create --name app -f requirements.yml
+
+COPY ./geofencing_client/ ./geofencing_client/
+
+COPY . /source/
+RUN set -x \
+    && pip install /source \
+    && rm -rf /source
+
+CMD ["python", "/app/geofencing_client/app.py"]

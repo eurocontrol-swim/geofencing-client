@@ -37,5 +37,5 @@ SUBSCRIPTION-MANAGER:
   timeout: 30
   verify: false
 
-GEOFENCING_CLIENT_SM_USER: 'geofencing-client'
-GEOFENCING_CLIENT_SM_PASS: 'geofencing-client'
+GEOFENCING_VIEWER_SM_USER: 'geofencing-viewer'
+GEOFENCING_VIEWER_SM_PASS: 'geofencing-viewer'

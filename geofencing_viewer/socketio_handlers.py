@@ -27,24 +27,72 @@ http://opensource.org/licenses/BSD-3-Clause
 
 Details on EUROCONTROL: http://www.eurocontrol.int
 """
-from setuptools import setup, find_packages
 
-__author__ = 'EUROCONTROL (SWIM)'
+__author__ = "EUROCONTROL (SWIM)"
 
-setup(
-    name='geofencing-viewer',
-    version='0.0.1',
-    description='Geofencing Client (Subscriber)',
-    author='EUROCONTROL (SWIM)',
-    author_email='',
-    packages=find_packages(exclude=['tests']),
-    url='https://github.com/eurocontrol-swim/geofencing-viewer',
-    install_requires=[],
-    tests_require=[
-        'pytest',
-        'pytest-cov'
+POLYGONS = {
+    "basilique_polygon":  [
+        [[50.863648, 4.329385],
+         [50.865348, 4.328055],
+         [50.868470, 4.317369],
+         [50.867671, 4.314826],
+         [50.865873, 4.315920],
+         [50.862792, 4.326508],
+         [50.863648, 4.329385]]
     ],
-    platforms=['Any'],
-    license='see LICENSE',
-    zip_safe=False
-)
+    "parc_royal": [
+        [[50.846844, 4.362334],
+         [50.843125, 4.360553],
+         [50.842244, 4.364823],
+         [50.845977, 4.366797],
+         [50.846844, 4.362334]]
+    ],
+    "parc_du_cinquantenaire": [
+        [[50.844065, 4.387284],
+         [50.842222, 4.395417],
+         [50.839485, 4.397841],
+         [50.838055, 4.392970],
+         [50.839681, 4.384977],
+         [50.844065, 4.387284]]
+    ],
+    "bois_de_la_cambre": [
+        [[50.814009, 4.367825],
+         [50.815210, 4.376479],
+         [50.795249, 4.400072],
+         [50.788147, 4.381311],
+         [50.805531, 4.376037],
+         [50.805314, 4.372529],
+         [50.814009, 4.367825]]
+    ]
+}
+
+
+def _get_polygon(coords):
+    return [{"LAT": lat, "LON": lon} for lat, lon in coords[0]]
+
+
+def on_connect(sio):
+    # uas_zones = geofencing_service.get_uas_zones()
+    uas_zones = [
+        {
+            "airspaceVolume": {
+                "polygon": _get_polygon(POLYGONS['basilique_polygon'])
+            }
+        },
+        {
+            "airspaceVolume": {
+                "polygon": _get_polygon(POLYGONS['parc_royal'])
+            }
+        },
+        {
+            "airspaceVolume": {
+                "polygon": _get_polygon(POLYGONS['parc_du_cinquantenaire'])
+            }
+        },
+        {
+            "airspaceVolume": {
+                "polygon": _get_polygon(POLYGONS['bois_de_la_cambre'])
+            }
+        }
+    ]
+    sio.emit('uas_zones', {'uas_zones': uas_zones})

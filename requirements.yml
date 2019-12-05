@@ -1,4 +1,4 @@
-name: geofencing-client
+name: geofencing-viewer
 dependencies:
   - python
   - pytest

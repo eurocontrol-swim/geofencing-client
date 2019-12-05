@@ -27,24 +27,44 @@ http://opensource.org/licenses/BSD-3-Clause
 
 Details on EUROCONTROL: http://www.eurocontrol.int
 """
-from setuptools import setup, find_packages
+import os
 
-__author__ = 'EUROCONTROL (SWIM)'
+from flask import send_from_directory, Blueprint
 
-setup(
-    name='geofencing-viewer',
-    version='0.0.1',
-    description='Geofencing Client (Subscriber)',
-    author='EUROCONTROL (SWIM)',
-    author_email='',
-    packages=find_packages(exclude=['tests']),
-    url='https://github.com/eurocontrol-swim/geofencing-viewer',
-    install_requires=[],
-    tests_require=[
-        'pytest',
-        'pytest-cov'
-    ],
-    platforms=['Any'],
-    license='see LICENSE',
-    zip_safe=False
-)
+__author__ = "EUROCONTROL (SWIM)"
+
+
+def _get_folder(name):
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(current_dir, name)
+
+
+geofencing_viewer_blueprint = Blueprint('geofencing_viewer',
+                                        __name__,
+                                        template_folder='templates',
+                                        static_folder='static')
+
+
+@geofencing_viewer_blueprint.route("/")
+def index():
+    return send_from_directory('web_app/templates/', "index.html")
+
+
+@geofencing_viewer_blueprint.route('/js/<path:path>')
+def send_js(path):
+    return send_from_directory('web_app/static/js', path)
+
+
+@geofencing_viewer_blueprint.route('/css/<path:path>')
+def send_css(path):
+    return send_from_directory('web_app/static/css', path)
+
+
+@geofencing_viewer_blueprint.route('/img/<path:path>')
+def send_img(path):
+    return send_from_directory('web_app/static/img', path)
+
+
+@geofencing_viewer_blueprint.route('/favicon.ico')
+def favicon():
+    return send_from_directory('web_app/static/img', 'geofence.png', mimetype='image/png')

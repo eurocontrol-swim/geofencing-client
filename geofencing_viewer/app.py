@@ -27,24 +27,52 @@ http://opensource.org/licenses/BSD-3-Clause
 
 Details on EUROCONTROL: http://www.eurocontrol.int
 """
-from setuptools import setup, find_packages
+import os
+from functools import partial
 
-__author__ = 'EUROCONTROL (SWIM)'
+from flask import Flask
+from flask_socketio import SocketIO
+from swim_pubsub.subscriber import SubApp
 
-setup(
-    name='geofencing-viewer',
-    version='0.0.1',
-    description='Geofencing Client (Subscriber)',
-    author='EUROCONTROL (SWIM)',
-    author_email='',
-    packages=find_packages(exclude=['tests']),
-    url='https://github.com/eurocontrol-swim/geofencing-viewer',
-    install_requires=[],
-    tests_require=[
-        'pytest',
-        'pytest-cov'
-    ],
-    platforms=['Any'],
-    license='see LICENSE',
-    zip_safe=False
-)
+from geofencing_viewer.socketio_handlers import on_connect
+from geofencing_viewer.web_app.views import geofencing_viewer_blueprint
+
+__author__ = "EUROCONTROL (SWIM)"
+
+
+def _get_config_path():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(current_dir, 'config.yml')
+
+
+# the subscriber app and the subscriber that receives data from the broker and interacts with subscription manager
+sub_app = SubApp.create_from_config(_get_config_path())
+# start the subscriber app in the background
+sub_app.run(threaded=True)
+# subscriber = sub_app.register_subscriber(username=sub_app.config['GEOFENCING_VIEWER_SM_USER'],
+#                                          password=sub_app.config['GEOFENCING_VIEWER_SM_PASS'])
+
+
+# the web app that renders the frontend
+flask_app = Flask(__name__)
+flask_app.register_blueprint(geofencing_viewer_blueprint)
+
+# the SocketIO that sits in between the frontend and backend and redirects the data coming from the broker to the
+# frontend via socket.io
+sio = SocketIO(flask_app)
+# sio.on_event('subscribe', partial(on_subscribe, sio=sio, subscriber=subscriber))
+# sio.on_event('unsubscribe', partial(on_unsubscribe, subscriber=subscriber))
+# sio.on_event('pause', partial(on_pause, subscriber=subscriber))
+# sio.on_event("resume", partial(on_resume, subscriber=subscriber))
+sio.on_event('connect', partial(on_connect, sio=sio))
+# sio.on_event('disconnect', partial(on_disconnect, subscriber=subscriber))
+
+
+def main():
+
+    # start the flask_socketio app
+    sio.run(flask_app, host="0.0.0.0")
+
+
+if __name__ == '__main__':
+    main()

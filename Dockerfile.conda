@@ -12,11 +12,11 @@ WORKDIR /app
 COPY requirements.yml requirements.yml
 RUN conda env create --name app -f requirements.yml
 
-COPY ./geofencing_client/ ./geofencing_client/
+COPY ./geofencing_viewer/ ./geofencing_viewer/
 
 COPY . /source/
 RUN set -x \
     && pip install /source \
     && rm -rf /source
 
-CMD ["python", "/app/geofencing_client/app.py"]
+CMD ["python", "/app/geofencing_viewer/app.py"]

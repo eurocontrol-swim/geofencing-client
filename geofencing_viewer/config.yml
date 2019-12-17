@@ -25,17 +25,24 @@ LOGGING:
     proton:
       level: INFO
 
+    geventwebsocket.handler:
+      level: INFO
+
 BROKER:
   host: '0.0.0.0:5671'
   cert_db: '/secrets/rabbitmq/ca_certificate.pem'
   sasl_user: 'ny-consumer'
   sasl_password: 'ny'
 
-SUBSCRIPTION-MANAGER:
-  host: 'localhost:8080'
+# Geofencing service
+SUBSCRIPTION-MANAGER-API:
+  host: 'localhost:8000'
   https: false
   timeout: 30
   verify: false
+  username: 'geofencing'
+  password: 'geofencing'
 
-GEOFENCING_VIEWER_SM_USER: 'geofencing-viewer'
-GEOFENCING_VIEWER_SM_PASS: 'geofencing-viewer'
+
+GEOFENCING_VIEWER_GS_USER: 'geofencing'
+GEOFENCING_VIEWER_GS_PASS: 'geofencing'

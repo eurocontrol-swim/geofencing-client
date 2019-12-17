@@ -32,9 +32,11 @@ from functools import partial
 
 from flask import Flask
 from flask_socketio import SocketIO
-from swim_pubsub.subscriber import SubApp
+from pkg_resources import resource_filename
+from pubsub_facades.geofencing_pubsub import GeofencingSubscriber
+from swim_backend.config import load_app_config
 
-from geofencing_viewer.socketio_handlers import on_connect
+from geofencing_viewer.socketio_handlers import on_connect, on_subscribe
 from geofencing_viewer.web_app.views import geofencing_viewer_blueprint
 
 __author__ = "EUROCONTROL (SWIM)"
@@ -45,22 +47,23 @@ def _get_config_path():
     return os.path.join(current_dir, 'config.yml')
 
 
-# the subscriber app and the subscriber that receives data from the broker and interacts with subscription manager
-sub_app = SubApp.create_from_config(_get_config_path())
+# the subscriber that receives data from the broker and interacts with the geofencing subscription manager
+subscriber = GeofencingSubscriber.create_from_config(_get_config_path())
 # start the subscriber app in the background
-sub_app.run(threaded=True)
-# subscriber = sub_app.register_subscriber(username=sub_app.config['GEOFENCING_VIEWER_SM_USER'],
-#                                          password=sub_app.config['GEOFENCING_VIEWER_SM_PASS'])
+subscriber.start(threaded=True)
 
 
 # the web app that renders the frontend
 flask_app = Flask(__name__)
 flask_app.register_blueprint(geofencing_viewer_blueprint)
 
+app_config = load_app_config(filename=resource_filename(__name__, 'config.yml'))
+flask_app.config.update(app_config)
+
 # the SocketIO that sits in between the frontend and backend and redirects the data coming from the broker to the
 # frontend via socket.io
 sio = SocketIO(flask_app)
-# sio.on_event('subscribe', partial(on_subscribe, sio=sio, subscriber=subscriber))
+sio.on_event('subscribe', partial(on_subscribe, sio=sio, subscriber=subscriber))
 # sio.on_event('unsubscribe', partial(on_unsubscribe, subscriber=subscriber))
 # sio.on_event('pause', partial(on_pause, subscriber=subscriber))
 # sio.on_event("resume", partial(on_resume, subscriber=subscriber))

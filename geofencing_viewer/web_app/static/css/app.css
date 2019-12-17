@@ -10,3 +10,11 @@ html, body {
 .container-fluid, .content{
     height: 100%;
 }
+
+.modal-backdrop {
+     background-color: rgba(0,0,0,.1) !important;
+}
+
+.error-icon {
+    color: red;
+}

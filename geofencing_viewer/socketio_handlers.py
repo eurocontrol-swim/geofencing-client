@@ -30,69 +30,99 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 
 __author__ = "EUROCONTROL (SWIM)"
 
-POLYGONS = {
-    "basilique_polygon":  [
-        [[50.863648, 4.329385],
-         [50.865348, 4.328055],
-         [50.868470, 4.317369],
-         [50.867671, 4.314826],
-         [50.865873, 4.315920],
-         [50.862792, 4.326508],
-         [50.863648, 4.329385]]
-    ],
-    "parc_royal": [
-        [[50.846844, 4.362334],
-         [50.843125, 4.360553],
-         [50.842244, 4.364823],
-         [50.845977, 4.366797],
-         [50.846844, 4.362334]]
-    ],
-    "parc_du_cinquantenaire": [
-        [[50.844065, 4.387284],
-         [50.842222, 4.395417],
-         [50.839485, 4.397841],
-         [50.838055, 4.392970],
-         [50.839681, 4.384977],
-         [50.844065, 4.387284]]
-    ],
-    "bois_de_la_cambre": [
-        [[50.814009, 4.367825],
-         [50.815210, 4.376479],
-         [50.795249, 4.400072],
-         [50.788147, 4.381311],
-         [50.805531, 4.376037],
-         [50.805314, 4.372529],
-         [50.814009, 4.367825]]
-    ]
-}
+import logging
+import uuid
+from datetime import datetime, timezone
+from functools import partial
+
+import proton
+from flask import current_app
+from geofencing_service_client.geofencing_service import GeofencingServiceClient
+from geofencing_service_client.models import UASZonesFilter, AirspaceVolume, Point, CodeVerticalReferenceType, \
+    SubscribeToUASZonesUpdatesReply, GenericReply, RequestStatus, UASZone
+from pubsub_facades.geofencing_pubsub import Subscription
+from rest_client.errors import APIError
+from swim_backend.local import AppContextProxy
 
 
-def _get_polygon(coords):
-    return [{"LAT": lat, "LON": lon} for lat, lon in coords[0]]
+_logger = logging.getLogger(__name__)
+
+
+def _get_geofencing_service_client():
+    return GeofencingServiceClient.create(
+        host=current_app.config['SUBSCRIPTION-MANAGER-API']['host'],
+        https=current_app.config['SUBSCRIPTION-MANAGER-API']['https'],
+        timeout=current_app.config['SUBSCRIPTION-MANAGER-API']['timeout'],
+        verify=current_app.config['SUBSCRIPTION-MANAGER-API']['verify'],
+        username=current_app.config['SUBSCRIPTION-MANAGER-API']['username'],
+        password=current_app.config['SUBSCRIPTION-MANAGER-API']['password']
+    )
+
+
+gs_client = AppContextProxy(_get_geofencing_service_client)
+
+
+def _get_initial_uas_zones_filter():
+    return UASZonesFilter(
+        airspace_volume=AirspaceVolume(
+            polygon=[
+                Point(50.901767, 4.371125),
+                Point(50.866953, 4.224330),
+                Point(50.788595, 4.342881),
+                Point(50.846430, 4.535647),
+                Point(50.901767, 4.371125)
+            ],
+            lower_limit_in_m=0,
+            upper_limit_in_m=100000,
+            upper_vertical_reference=CodeVerticalReferenceType.AGL,
+            lower_vertical_reference=CodeVerticalReferenceType.AGL
+        ),
+        start_date_time=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        end_date_time=datetime(2021, 1, 1, tzinfo=timezone.utc),
+        regions=[1],
+        request_id='1'
+    )
 
 
 def on_connect(sio):
-    # uas_zones = geofencing_service.get_uas_zones()
-    uas_zones = [
-        {
-            "airspaceVolume": {
-                "polygon": _get_polygon(POLYGONS['basilique_polygon'])
-            }
-        },
-        {
-            "airspaceVolume": {
-                "polygon": _get_polygon(POLYGONS['parc_royal'])
-            }
-        },
-        {
-            "airspaceVolume": {
-                "polygon": _get_polygon(POLYGONS['parc_du_cinquantenaire'])
-            }
-        },
-        {
-            "airspaceVolume": {
-                "polygon": _get_polygon(POLYGONS['bois_de_la_cambre'])
-            }
+    uas_zones_filter = _get_initial_uas_zones_filter()
+    try:
+        reply = gs_client.filter_uas_zones(uas_zones_filter)
+        sio.emit('uas_zones', {'uas_zones': [uas_zone.to_json() for uas_zone in reply.uas_zone_list]})
+    except APIError as e:
+        _logger.error(f"Geofencing Service error: {str(e)}")
+
+
+def message_consumer(message: proton.Message, sio):
+    uas_zones_data = message.body
+
+    sio.emit('uas_zones_update', uas_zones_data)
+
+
+def on_subscribe(data, sio, subscriber):
+    uas_zones_filter_json = data['uasZonesFilter']
+
+    uas_zones_filter = UASZonesFilter.from_json(uas_zones_filter_json)
+
+    try:
+        subscription = subscriber.subscribe(uas_zones_filter, message_consumer=partial(message_consumer, sio=sio))
+
+        # subscription = Subscription(id=uuid.uuid4().hex[:6], queue=uuid.uuid4().hex)
+
+        socket_response = {
+            'status': 'OK',
+            'subscriptionID': subscription.id,
+            'publicationLocation': subscription.queue
         }
-    ]
-    sio.emit('uas_zones', {'uas_zones': uas_zones})
+
+        _logger.info(subscription.id, subscription.queue)
+    except APIError as e:
+        _logger.error(str(e))
+        socket_response = {
+            'status': 'NOK',
+            'error': e.detail
+        }
+
+    socket_response['uas_zones_filter'] = uas_zones_filter_json
+
+    sio.emit('subscribed', {'response': socket_response})

@@ -31,8 +31,8 @@ LOGGING:
 BROKER:
   host: '0.0.0.0:5671'
   cert_db: '/secrets/rabbitmq/ca_certificate.pem'
-  sasl_user: 'ny-consumer'
-  sasl_password: 'ny'
+  sasl_user: 'swim-explorer-broker'
+  sasl_password: 'swim-secret'
 
 # Geofencing service
 SUBSCRIPTION-MANAGER-API:
@@ -40,9 +40,5 @@ SUBSCRIPTION-MANAGER-API:
   https: false
   timeout: 30
   verify: false
-  username: 'geofencing'
-  password: 'geofencing'
-
-
-GEOFENCING_VIEWER_GS_USER: 'geofencing'
-GEOFENCING_VIEWER_GS_PASS: 'geofencing'
+  username: geofencing
+  password: geofencing

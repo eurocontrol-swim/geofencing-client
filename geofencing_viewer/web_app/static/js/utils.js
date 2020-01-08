@@ -24,6 +24,9 @@ function getCurrentTimezoneString() {
     return timezoneString + ":00"
 }
 
+function removeTimeZoneInfo(dateString) {
+    return dateString.split('+')[0]
+}
 
 function pointListFromGeoJSONCoordinates(geoJSONCoordinates) {
     return geoJSONCoordinates.map(c => ({LAT: c[0], LON: c[1]}));

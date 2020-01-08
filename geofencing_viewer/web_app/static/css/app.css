@@ -1,15 +1,17 @@
-
-html, body {
-    height: 100%;
+html, body/*, and all other map parent selectors*/ {
+  height: 100%;
+  width: 100%;
 }
 
-#mapid {
-    height: 100%;
+.navbar {
+    position: relative;
 }
 
-.container-fluid, .content{
-    height: 100%;
+#map-container, #map {
+  width: auto;
+  height: 100%;
 }
+
 
 .modal-backdrop {
      background-color: rgba(0,0,0,.1) !important;

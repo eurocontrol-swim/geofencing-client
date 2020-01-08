@@ -4,6 +4,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pyyaml
+  - python-dateutil
   - pip:
     - gevent
     - gevent-websocket

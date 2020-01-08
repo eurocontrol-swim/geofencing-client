@@ -31,21 +31,24 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 __author__ = "EUROCONTROL (SWIM)"
 
 import logging
-import uuid
 from datetime import datetime, timezone
 from functools import partial
+from socket import SocketIO
+from typing import Any
 
 import proton
 from flask import current_app
 from geofencing_service_client.geofencing_service import GeofencingServiceClient
-from geofencing_service_client.models import UASZonesFilter, AirspaceVolume, Point, CodeVerticalReferenceType, \
-    SubscribeToUASZonesUpdatesReply, GenericReply, RequestStatus, UASZone
-from pubsub_facades.geofencing_pubsub import Subscription
+from geofencing_service_client.models import UASZonesFilter, AirspaceVolume, Point, CodeVerticalReferenceType
+from pubsub_facades.geofencing_pubsub import GeofencingSubscriber
 from rest_client.errors import APIError
 from swim_backend.local import AppContextProxy
 
+from geofencing_viewer.utils import handle_geofencing_service_response
 
 _logger = logging.getLogger(__name__)
+
+SUBSCRIPTIONS = {}
 
 
 def _get_geofencing_service_client():
@@ -84,45 +87,71 @@ def _get_initial_uas_zones_filter():
     )
 
 
+@handle_geofencing_service_response
+def _get_initial_uas_zones():
+    gs_reply = gs_client.filter_uas_zones(_get_initial_uas_zones_filter())
+
+    return {'uas_zones': [uas_zone.to_json() for uas_zone in gs_reply.uas_zone_list]}
+
+
+def message_consumer(message: proton.Message, sio: SocketIO):
+    sio.emit('uas_zones_update', {'uas_zones': message.body['uas_zones']})
+
+
+@handle_geofencing_service_response
+def _subscribe(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscriber):
+    uas_zones_filter = UASZonesFilter.from_json(data['uasZonesFilter'])
+
+    subscription = geofencing_subscriber.subscribe(uas_zones_filter,
+                                                   message_consumer=partial(message_consumer, sio=sio))
+
+    _logger.info(f"Subscribed to queue: {subscription.queue}")
+    SUBSCRIPTIONS[subscription.id] = subscription
+
+    return {
+        'subscriptionID': subscription.id,
+        'publicationLocation': subscription.queue,
+        'uas_zones_filter': data['uasZonesFilter']
+    }
+
+
+@handle_geofencing_service_response
+def _pause(data: Any, geofencing_subscriber: GeofencingSubscriber):
+    subscription = SUBSCRIPTIONS[data['subscriptionID']]
+    geofencing_subscriber.pause(subscription)
+
+
+@handle_geofencing_service_response
+def _resume(data: Any, geofencing_subscriber: GeofencingSubscriber):
+    subscription = SUBSCRIPTIONS[data['subscriptionID']]
+    geofencing_subscriber.resume(subscription)
+
+
+@handle_geofencing_service_response
+def _unsubscribe(data: Any, geofencing_subscriber: GeofencingSubscriber):
+    subscription = SUBSCRIPTIONS[data['subscriptionID']]
+    geofencing_subscriber.unsubscribe(subscription)
+
+
+###################
+# SocketIO handlers
+###################
+
 def on_connect(sio):
-    uas_zones_filter = _get_initial_uas_zones_filter()
-    try:
-        reply = gs_client.filter_uas_zones(uas_zones_filter)
-        sio.emit('uas_zones', {'uas_zones': [uas_zone.to_json() for uas_zone in reply.uas_zone_list]})
-    except APIError as e:
-        _logger.error(f"Geofencing Service error: {str(e)}")
+    sio.emit('uas_zones', _get_initial_uas_zones())
 
 
-def message_consumer(message: proton.Message, sio):
-    uas_zones_data = message.body
-
-    sio.emit('uas_zones_update', uas_zones_data)
+def on_subscribe(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscriber):
+    sio.emit('subscribe:response', {'response': _subscribe(data, sio, geofencing_subscriber)})
 
 
-def on_subscribe(data, sio, subscriber):
-    uas_zones_filter_json = data['uasZonesFilter']
+def on_pause(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscriber):
+    sio.emit('pause:response', {'response': _pause(data, geofencing_subscriber)})
 
-    uas_zones_filter = UASZonesFilter.from_json(uas_zones_filter_json)
 
-    try:
-        subscription = subscriber.subscribe(uas_zones_filter, message_consumer=partial(message_consumer, sio=sio))
+def on_resume(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscriber):
+    sio.emit('resume:response', {'response': _resume(data, geofencing_subscriber)})
 
-        # subscription = Subscription(id=uuid.uuid4().hex[:6], queue=uuid.uuid4().hex)
 
-        socket_response = {
-            'status': 'OK',
-            'subscriptionID': subscription.id,
-            'publicationLocation': subscription.queue
-        }
-
-        _logger.info(subscription.id, subscription.queue)
-    except APIError as e:
-        _logger.error(str(e))
-        socket_response = {
-            'status': 'NOK',
-            'error': e.detail
-        }
-
-    socket_response['uas_zones_filter'] = uas_zones_filter_json
-
-    sio.emit('subscribed', {'response': socket_response})
+def on_unsubscribe(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscriber):
+    sio.emit('unsubscribe:response', {'response': _unsubscribe(data, geofencing_subscriber)})

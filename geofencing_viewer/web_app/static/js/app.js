@@ -27,7 +27,12 @@ socket.on('uas_zones_update', function(event) {
 });
 
 socket.on('subscribe:response', function(event) {
-    finalizeSubscription(event.response);
+    if (event.response.status == 'NOK') {
+        console.log(event.response.error)
+        showError("Failed to subscribe");
+    } else {
+        finalizeSubscription(event.response);
+    }
 })
 
 socket.on('pause:response', function(event) {

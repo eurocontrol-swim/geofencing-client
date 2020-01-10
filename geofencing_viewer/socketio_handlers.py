@@ -118,19 +118,19 @@ def _subscribe(data: Any, sio: SocketIO, geofencing_subscriber: GeofencingSubscr
 @handle_geofencing_service_response
 def _pause(data: Any, geofencing_subscriber: GeofencingSubscriber):
     subscription = SUBSCRIPTIONS[data['subscriptionID']]
-    geofencing_subscriber.pause(subscription)
+    geofencing_subscriber.pause(subscription.id)
 
 
 @handle_geofencing_service_response
 def _resume(data: Any, geofencing_subscriber: GeofencingSubscriber):
     subscription = SUBSCRIPTIONS[data['subscriptionID']]
-    geofencing_subscriber.resume(subscription)
+    geofencing_subscriber.resume(subscription.id)
 
 
 @handle_geofencing_service_response
 def _unsubscribe(data: Any, geofencing_subscriber: GeofencingSubscriber):
     subscription = SUBSCRIPTIONS[data['subscriptionID']]
-    geofencing_subscriber.unsubscribe(subscription)
+    geofencing_subscriber.unsubscribe(subscription.id)
 
 
 ###################

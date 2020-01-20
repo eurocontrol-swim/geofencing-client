@@ -19,8 +19,9 @@ LOGGING:
     handlers: [console]
 
   loggers:
-    swim-pubsub:
-      level: DEBUG
+
+    geofencing_viewer:
+      level: INFO
 
     proton:
       level: INFO

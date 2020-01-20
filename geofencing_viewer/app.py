@@ -36,7 +36,8 @@ from pkg_resources import resource_filename
 from pubsub_facades.geofencing_pubsub import GeofencingSubscriber
 from swim_backend.config import load_app_config
 
-from geofencing_viewer.socketio_handlers import on_connect, on_subscribe, on_unsubscribe, on_pause, on_resume
+from geofencing_viewer.socketio_handlers import on_connect, on_subscribe, on_unsubscribe, on_pause, on_resume, \
+    preload_geofencing_subscriber
 from geofencing_viewer.web_app.views import geofencing_viewer_blueprint
 
 __author__ = "EUROCONTROL (SWIM)"
@@ -47,22 +48,28 @@ def _get_config_path():
     return os.path.join(current_dir, 'config.yml')
 
 
-# the subscriber that receives data from the broker and interacts with the geofencing subscription manager
-geofencing_subscriber = GeofencingSubscriber.create_from_config(_get_config_path())
-# start the subscriber app in the background so it can be passed in the event handlers below
-geofencing_subscriber.run(threaded=True)
-
+# def prepare_app():
+app_config = load_app_config(filename=resource_filename(__name__, 'config.yml'))
 
 # the web app that renders the frontend
 flask_app = Flask(__name__)
 flask_app.register_blueprint(geofencing_viewer_blueprint)
-
-app_config = load_app_config(filename=resource_filename(__name__, 'config.yml'))
 flask_app.config.update(app_config)
 
 # the SocketIO that sits in between the frontend and backend and redirects the data coming from the broker to the
 # frontend via socket.io
 sio = SocketIO(flask_app)
+
+# The subscriber that receives data from the broker and interacts with the geofencing service
+# It is started in the background so it can be passed in the SocketIO event handlers below
+geofencing_subscriber = GeofencingSubscriber.create_from_config(_get_config_path())
+geofencing_subscriber.run(threaded=True)
+
+# preload the consumers (AMQP1.0 receivers) in the broker
+with flask_app.app_context():
+    preload_geofencing_subscriber(subscriber=geofencing_subscriber, sio=sio)
+
+# Register SocketIO event handlers
 sio.on_event('subscribe', partial(on_subscribe, sio=sio, geofencing_subscriber=geofencing_subscriber))
 sio.on_event('unsubscribe', partial(on_unsubscribe, sio=sio, geofencing_subscriber=geofencing_subscriber))
 sio.on_event('pause', partial(on_pause, sio=sio, geofencing_subscriber=geofencing_subscriber))
@@ -70,12 +77,13 @@ sio.on_event("resume", partial(on_resume, sio=sio, geofencing_subscriber=geofenc
 sio.on_event('connect', partial(on_connect, sio=sio))
 # sio.on_event('disconnect', partial(on_disconnect, subscriber=subscriber))
 
+# return sio, flask_app
 
-def main():
 
-    # start the flask_socketio app
-    sio.run(flask_app, host="0.0.0.0", port=3000)
+# def main(host="0.0.0.0", port=3000):
+#     sio, flask_app = prepare_app()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    sio.run(flask_app, host="0.0.0.0", port=3000)

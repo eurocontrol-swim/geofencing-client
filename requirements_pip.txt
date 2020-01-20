@@ -4,6 +4,7 @@ pyyaml
 python-dateutil
 gevent
 gevent-websocket
+eventlet
 gunicorn
 flask-socketio
 websockets

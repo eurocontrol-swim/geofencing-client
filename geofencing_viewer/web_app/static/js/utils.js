@@ -25,11 +25,19 @@ function getCurrentTimezoneString() {
 }
 
 function removeTimeZoneInfo(dateString) {
-    return dateString.split('+')[0]
+    var [date, time] = dateString.split('T')
+
+    if (time == undefined) {
+        return dateString
+    }
+
+    time = time.split('+')[0].split('-')[0]
+
+    return [date, time].join('T')
 }
 
 function pointListFromGeoJSONCoordinates(geoJSONCoordinates) {
-    return geoJSONCoordinates.map(c => ({LAT: c[0], LON: c[1]}));
+    return geoJSONCoordinates.map(c => ({LON: c[0], LAT: c[1]}));
 }
 
 

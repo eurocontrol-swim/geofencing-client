@@ -72,7 +72,6 @@ map.on('draw:created', function(e) {
         layer = e.layer;
     editableLayers.addLayer(layer);
 
-    subscriptionUnderConstruction = new Subscription(layer);
-    subscriptionForm.init(subscriptionUnderConstruction);
+    subscriptionForm.init(layer);
 });
 

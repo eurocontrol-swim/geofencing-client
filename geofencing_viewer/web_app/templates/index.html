@@ -45,11 +45,11 @@
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
 					<label for="upperLimit" class="col-form-label">Upper Limit (meters)</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.upperLimit" class="form-control" id="upperLimit" required>
+					<input type="text" v-model="uasZonesFilter.airspaceVolume.upperLimit" class="form-control" id="upperLimit" required>
 				  </div>
 				  <div class="col-md-4 mb-6">
-					<label for="upperVerticalRerefence" class="col-form-label">Upper Limit Reference</label>
-					<select v-model="subscription.uasZonesFilter.airspaceVolume.upperVerticalReference" id="upperVerticalRerefence" name="Upper Vertical Reference" class="form-control">
+					<label for="upperVerticalReference" class="col-form-label">Upper Limit Reference</label>
+					<select v-model="uasZonesFilter.airspaceVolume.upperVerticalReference" id="upperVerticalReference" name="Upper Vertical Reference" class="form-control">
 						<option  v-for="option in limitReferenceOptions" v-bind:value="option.value">
 							  {{ option.text }}
 						  </option>
@@ -59,11 +59,11 @@
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
 					<label for="lowerLimit" class="col-form-label">Lower Limit (meters)</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" id="lowerLimit" required>
+					<input type="text" v-model="uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" id="lowerLimit" required>
 				  </div>
 				  <div class="col-md-4 mb-6">
 					<label for="lowerVerticalReference" class="col-form-label">Lower Limit Reference</label>
-					<select v-model="subscription.uasZonesFilter.airspaceVolume.lowerVerticalReference" id="lowerVerticalReference" name="Lower Vertical Reference" class="form-control">
+					<select v-model="uasZonesFilter.airspaceVolume.lowerVerticalReference" id="lowerVerticalReference" name="Lower Vertical Reference" class="form-control">
 						  <option v-for="option in limitReferenceOptions" v-bind:value="option.value">
 							  {{ option.text }}
 						  </option>
@@ -77,15 +77,15 @@
 				  <div class="col-md-4 mb-3">
 
 					<label for="startDateTime" class="col-form-label">Start Date Time</label>
-					<input v-model="subscription.uasZonesFilter.startDateTime" type="datetime-local" class="form-control" id="startDateTime" required>
+					<input v-model="uasZonesFilter.startDateTime" type="datetime-local" class="form-control" id="startDateTime" required>
 				  </div>
 				  <div class="col-md-4 mb-3">
 					<label for="endDateTime" class="col-form-label">End Date Time</label>
-					<input v-model="subscription.uasZonesFilter.endDateTime" type="datetime-local" class="form-control" id="endDateTime" required>
+					<input v-model="uasZonesFilter.endDateTime" type="datetime-local" class="form-control" id="endDateTime" required>
 				  </div>
 				  <div class="col-md-4 mb-3">
 					<label for="updatedAfterDateTime" class="col-form-label">Updated After Date Time</label>
-					<input v-model="subscription.uasZonesFilter.updatedAfterDateTime" type="datetime-local" class="form-control" id="updatedAfterDateTime">
+					<input v-model="uasZonesFilter.updatedAfterDateTime" type="datetime-local" class="form-control" id="updatedAfterDateTime">
 				  </div>
 			  </div>
 			  <hr>
@@ -94,11 +94,11 @@
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
 					<label for="regions" class="col-form-label">Regions</label>
-					<input v-model="subscription.uasZonesFilter.regions" type="text" class="form-control" id="regions" placeholder="Regions (comma separated)">
+					<input v-model="uasZonesFilter.regions" type="text" class="form-control" id="regions" placeholder="Regions (comma separated)">
 				  </div>
 				  <div class="col-md-4 mb-6">
 					<label for="requestID" class="col-form-label">Request ID</label>
-					<input v-model="subscription.uasZonesFilter.requestID" type="text" class="form-control" id="requestID" placeholder="Request ID" required>
+					<input v-model="uasZonesFilter.requestID" type="text" class="form-control" id="requestID" placeholder="Request ID" required>
 				  </div>
 			  </div>
 			  </div>

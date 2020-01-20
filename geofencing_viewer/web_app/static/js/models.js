@@ -29,68 +29,46 @@ class UASZone {
 
     setUpPolygonLayer() {
         var polygonLayer = L.polygon(this.coords).addTo(map);
-        polygonLayer.bringToBack();
         polygonLayer.setStyle({color: "red"})
+        polygonLayer.bringToFront();
 
         return polygonLayer;
     }
 }
 
-class UASZonesFilter {
-    constructor(geoJSONPolygon) {
-        this.airspaceVolume = {
-            upperLimit: "10000",
-            lowerLimit: "0",
-            upperVerticalReference: "WGS84",
-            lowerVerticalReference: "WGS84",
-        };
-        if (isNullObject(geoJSONPolygon)) {
-            this.airspaceVolume.polygon = {};
-        }
-        else {
-            this.airspaceVolume.polygon = pointListFromGeoJSONCoordinates(geoJSONPolygon.geometry.coordinates[0]);
-        }
-        this.startDateTime = getDateString(getCurrentDate(0))
-        this.endDateTime = getDateString(getCurrentDate(1))
-        this.updatedAfterDateTime = "";
-        this.regions = "";
-        this.requestID = "";
-    }
-
-    toJSON() {
-        return {
-            airspaceVolume: {
-                polygon: this.airspaceVolume.polygon,
-                upperLimit: parseInt(this.airspaceVolume.upperLimit),
-                lowerLimit: parseInt(this.airspaceVolume.lowerLimit),
-                upperVerticalReference: this.airspaceVolume.upperVerticalReference,
-                lowerVerticalReference: this.airspaceVolume.lowerVerticalReference,
-            },
-            startDateTime: this.startDateTime + getCurrentTimezoneString(),
-            endDateTime: this.endDateTime + getCurrentTimezoneString(),
-            updatedAfterDateTime: this.updatedAfterDateTime,
-            regions: this.regions === "" ? [] : this.regions.split(",").map(x => parseInt(x)),
-            requestID: this.requestID
-        }
-    }
-
-}
 
 class Subscription {
-    constructor(polygonLayer) {
-        this.polygonLayer = polygonLayer;
-        this.id = "";
-        this.location = "";
-        this.topic_name = "";
-        this.active = false;
-        this.intersectingUASZones = [];
-        this.uasZonesFilter = isNullObject(polygonLayer) ? new UASZonesFilter({}) : new UASZonesFilter(polygonLayer.toGeoJSON());
+    constructor(id, publication_location, active, uasZonesFilter) {
+        this.id = id;
+        this.publication_location = publication_location;
+        this.active = active;
+        this.intersectingUASZonesIdentifiers = [];
+        this.uasZonesFilter = this.processDates(uasZonesFilter);
+        this.polygonLayer = this.setUpPolygonLayer();
     }
 
-    finalize(id, location) {
-        this.id = id;
-        this.location = location
-        this.active = true;
+    processDates(uasZonesFilter) {
+        uasZonesFilter.startDateTime = removeTimeZoneInfo(uasZonesFilter.startDateTime);
+        uasZonesFilter.endDateTime = removeTimeZoneInfo(uasZonesFilter.endDateTime);
+        if (!(uasZonesFilter.updateDateTime === undefined)) {
+            uasZonesFilter.updateDateTime = removeTimeZoneInfo(uasZonesFilter.updateDateTime);
+        }
+
+        return uasZonesFilter
+    }
+
+    setUpPolygonLayer() {
+        var coords = geojsonCoordinatesFromPointList(this.uasZonesFilter.airspaceVolume.polygon);
+        var polygonLayer = L.polygon(coords).addTo(map);
+        polygonLayer.bringToBack();
+        if (this.active) {
+            polygonLayer.setStyle({color: "blue"});
+        }
+        else {
+            polygonLayer.setStyle({color: "black"});
+        }
+
+        return polygonLayer;
     }
 }
 
@@ -101,9 +79,9 @@ var UASZonesList = new Vue({
         uaszones: []
     },
     methods: {
-        add: function(uaszone){
-
-            if (!this.uasZoneExists(uaszone.data.identifier)){
+        add: function(data){
+            if (this.getByIdentifier(data.identifier) == undefined) {
+                var uaszone = new UASZone(data);
                 uaszone.polygonLayer.addEventListener('click', function(event) {
                     getModalForUASZone(uaszone).modal('toggle');
                 });
@@ -114,10 +92,11 @@ var UASZonesList = new Vue({
             return this.uaszones.filter((uaszone) => JSON.stringify(uaszone.data.airspaceVolume.polygon) == JSON.stringify(polygon))[0];
         },
         remove: function(uaszone) {
+            map.removeLayer(uaszone.polygonLayer);
             this.uaszones.splice(this.uaszones.indexOf(uaszone), 1)
         },
-        uasZoneExists(identifier) {
-            return this.uaszones.filter((uaszone) => uaszone.data.identifier == identifier).length > 0;
+        getByIdentifier(identifier) {
+            return this.uaszones.filter((zone) => zone.data.identifier == identifier)[0];
         }
     }
 });
@@ -343,11 +322,22 @@ var subscriptionsList = new Vue({
         subscriptions: []
     },
     methods: {
-        add: function(subscription){
-            subscription.polygonLayer.addEventListener('click', function(event) {
-                getModalForSubscription(subscription).modal('toggle');
-            });
-            this.subscriptions.push(subscription)
+        add: function(sub_data){
+            if (this.getById(sub_data.subscriptionID) == undefined) {
+                var subscription = new Subscription(
+                    sub_data.subscriptionID,
+                    sub_data.publicationLocation,
+                    sub_data.active,
+                    sub_data.UASZonesFilter
+                );
+                subscription.polygonLayer.addEventListener('click', function(event) {
+                    getModalForSubscription(subscription).modal('toggle');
+                });
+                this.subscriptions.push(subscription)
+            }
+        },
+        getById(id) {
+            return this.subscriptions.filter((sub) => sub.id == id)[0];
         },
         getByPolygon: function(polygon) {
             return this.subscriptions.filter((sub) => JSON.stringify(sub.uasZonesFilter.airspaceVolume.polygon) == JSON.stringify(polygon))[0];
@@ -371,29 +361,29 @@ Vue.component('subscription-modal-item', {
 				  <span aria-hidden="true">&times;</span>
 				</button>
 			  </div>
-			<form id="subscription-modal" v-on:submit.prevent="subscribe">
+			<form v-on:submit.prevent="subscribe">
 			    <fieldset disabled>
 			  <div class="modal-body">
 
 			  <h5>Airspace Volume</h5>
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
-					<label for="upperLimit" class="col-form-label">Upper Limit (meters)</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.upperLimit" class="form-control" id="upperLimit" required>
+					<label class="col-form-label">Upper Limit (meters)</label>
+					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.upperLimit" class="form-control" required>
 				  </div>
 				  <div class="col-md-4 mb-6">
-					<label for="upperVerticalRerefence" class="col-form-label">Upper Limit Reference</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.upperVerticalReference" class="form-control" id="upperVerticalReference" required>
+					<label class="col-form-label">Upper Limit Reference</label>
+					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.upperVerticalReference" class="form-control" required>
 				  </div>
 				</div>
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
-					<label for="lowerLimit" class="col-form-label">Lower Limit (meters)</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" id="lowerLimit" required>
+					<label class="col-form-label">Lower Limit (meters)</label>
+					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" required>
 				  </div>
 				  <div class="col-md-4 mb-6">
-					<label for="lowerLimitReference" class="col-form-label">Lower Limit Reference</label>
-					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.lowerVerticalReference" class="form-control" id="lowerVerticalReference" required>
+					<label class="col-form-label">Lower Limit Reference</label>
+					<input type="text" v-model="subscription.uasZonesFilter.airspaceVolume.lowerVerticalReference" class="form-control" required>
 				  </div>
 			  </div>
 			  <hr>
@@ -402,16 +392,16 @@ Vue.component('subscription-modal-item', {
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-3">
 
-					<label for="startDateTime" class="col-form-label">Start Date Time</label>
-					<input v-model="subscription.uasZonesFilter.startDateTime" type="datetime-local" class="form-control" id="startDateTime" required>
+					<label class="col-form-label">Start Date Time</label>
+					<input v-model="subscription.uasZonesFilter.startDateTime" type="datetime-local" class="form-control" required>
 				  </div>
 				  <div class="col-md-4 mb-3">
-					<label for="endDateTime" class="col-form-label">End Date Time</label>
-					<input v-model="subscription.uasZonesFilter.endDateTime" type="datetime-local" class="form-control" id="endDateTime" required>
+					<label class="col-form-label">End Date Time</label>
+					<input v-model="subscription.uasZonesFilter.endDateTime" type="datetime-local" class="form-control" required>
 				  </div>
 				  <div class="col-md-4 mb-3">
-					<label for="updatedAfterDateTime" class="col-form-label">Updated After Date Time</label>
-					<input v-model="subscription.uasZonesFilter.updatedAfterDateTime" type="datetime-local" class="form-control" id="updatedAfterDateTime">
+					<label class="col-form-label">Updated After Date Time</label>
+					<input v-model="subscription.uasZonesFilter.updatedAfterDateTime" type="datetime-local" class="form-control">
 				  </div>
 			  </div>
 			  <hr>
@@ -419,19 +409,20 @@ Vue.component('subscription-modal-item', {
 			  <h5>Misc</h5>
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
-					<label for="startDateTime" class="col-form-label">Regions</label>
-					<input v-model="subscription.uasZonesFilter.regions" type="text" class="form-control" id="regions">
+					<label class="col-form-label">Regions</label>
+					<input v-model="subscription.uasZonesFilter.regions" type="text" class="form-control">
 				  </div>
 				  <div class="col-md-4 mb-6">
-					<label for="startDateTime" class="col-form-label">Request ID</label>
-					<input v-model="subscription.uasZonesFilter.requestID" type="text" class="form-control" id="requestID">
+					<label class="col-form-label">Request ID</label>
+					<input v-model="subscription.uasZonesFilter.requestID" type="text" class="form-control">
 				  </div>
 			  </div>
 			  </div>
 			  </fieldset>
 			</form>
 			  <div class="modal-footer">
-				<button type="submit" class="btn btn-primary" v-on:click="pauseResume(subscription)" ref="pauseResume">Pause</button>
+				<button v-if="subscription.active" type="submit" class="btn btn-primary" v-on:click="pauseResume(subscription)" ref="pauseResume">Pause</button>
+				<button v-else="subscription.active" type="submit" class="btn btn-primary" v-on:click="pauseResume(subscription)" ref="pauseResume">Resume</button>
         		<button type="button" class="btn btn-danger" data-dismiss="modal" v-on:click="unsubscribe(subscription)">Unsubscribe</button>
 			  </div>
 			</div>
@@ -460,7 +451,7 @@ Vue.component('subscription-modal-item', {
                 socket.emit('resume', {subscriptionID: subscription.id})
                 subscription.active = true;
                 this.$refs.pauseResume.innerHTML = 'Pause';
-                subscription.polygonLayer.setStyle({color: "rgb(51, 136, 255)"});
+                subscription.polygonLayer.setStyle({color: "blue"});
 
             }
             getModalForSubscription(subscription).modal('hide');

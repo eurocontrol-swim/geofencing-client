@@ -1,23 +1,6 @@
 
 "use strict"
 
-//function finalizeSubscription(response) {
-//    if (response.status == 'NOK') {
-//        map.removeLayer(subscriptionUnderConstruction.polygonLayer);
-//        showError(response.error);
-//    } else {
-//        var subscription = Subscription(response.subscriptionID,
-//                                        response.publicationLocation,
-//                                        response.active,
-//                                        response.UASZonesFilter);
-//
-////        map.addLayer(subscriptionUnderConstruction.polygonLayer);
-////        subscription.polygonLayer.bringToBack();
-//
-//        subscriptionsList.add(subscription);
-//    }
-//}
-
 var subscriptionForm = new Vue({
     el: '#subscriptionForm',
     data: {
@@ -49,8 +32,25 @@ var subscriptionForm = new Vue({
             $('#subscriptionFormModal').modal('toggle');
         },
         subscribe: function() {
+            var self = this;
+            $.ajax({
+                type: "POST",
+                url: "/subscribe",
+                dataType : "json",
+                contentType: "application/json; charset=utf-8",
+                data : JSON.stringify({uasZonesFilter: this.toJSON()}),
+                success : function(result) {
+                    map.removeLayer(self.polygonLayer);
 
-            socket.emit('subscribe', {uasZonesFilter: this.toJSON()});
+                    if (result.status == 'NOK') {
+                        console.log(result.error)
+                        showError("Failed to subscribe");
+                    }
+                    else {
+                        subscriptionsList.add(result);
+                    }
+                },
+            });
 
             $('#subscriptionFormModal').modal('hide');
 
@@ -72,16 +72,6 @@ var subscriptionForm = new Vue({
                 updatedAfterDateTime: this.uasZonesFilter.updatedAfterDateTime,
                 regions: this.uasZonesFilter.regions === "" ? [] : this.uasZonesFilter.regions.split(",").map(x => parseInt(x)),
                 requestID: this.uasZonesFilter.requestID
-            }
-        },
-        finalize(response) {
-            map.removeLayer(this.polygonLayer);
-
-            if (response.status == 'NOK') {
-                showError(response.error);
-            }
-            else {
-                subscriptionsList.add(response);
             }
         }
     }

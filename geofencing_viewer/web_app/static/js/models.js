@@ -431,7 +431,19 @@ Vue.component('subscription-modal-item', {
         `,
     methods: {
         unsubscribe: function(subscription) {
-            socket.emit('unsubscribe', {subscriptionID: subscription.id})
+
+            $.ajax({
+                type: "GET",
+                url: "/unsubscribe/" + subscription.id,
+                dataType : "json",
+                contentType: "application/json; charset=utf-8",
+                success : function(result) {
+                    if (result.status == 'NOK') {
+                        console.log(result.error)
+                        showError("Failed to unsubscribe");
+                    }
+                },
+            });
 
             map.removeLayer(subscription.polygonLayer);
             subscriptionsList.remove(subscription);
@@ -440,7 +452,18 @@ Vue.component('subscription-modal-item', {
         },
         pauseResume: function(subscription) {
             if (subscription.active) {
-                socket.emit('pause', {subscriptionID: subscription.id})
+                $.ajax({
+                    type: "GET",
+                    url: "/pause/" + subscription.id,
+                    dataType : "json",
+                    contentType: "application/json; charset=utf-8",
+                    success : function(result) {
+                        if (result.status == 'NOK') {
+                            console.log(result.error)
+                            showError("Failed to pause subscription");
+                        }
+                    },
+                });
 
                 subscription.active = false;
                 this.$refs.pauseResume.innerHTML = 'Resume';
@@ -448,7 +471,18 @@ Vue.component('subscription-modal-item', {
             }
             else {
 
-                socket.emit('resume', {subscriptionID: subscription.id})
+                $.ajax({
+                    type: "GET",
+                    url: "/resume/" + subscription.id,
+                    dataType : "json",
+                    contentType: "application/json; charset=utf-8",
+                    success : function(result) {
+                        if (result.status == 'NOK') {
+                            console.log(result.error)
+                            showError("Failed to resume subscription");
+                        }
+                    },
+                });
                 subscription.active = true;
                 this.$refs.pauseResume.innerHTML = 'Pause';
                 subscription.polygonLayer.setStyle({color: "blue"});

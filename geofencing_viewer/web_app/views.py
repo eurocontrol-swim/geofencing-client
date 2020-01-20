@@ -1,5 +1,5 @@
 """
-Copyright 2019 EUROCONTROL
+Copyright 2020 EUROCONTROL
 ==========================================
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -27,22 +27,28 @@ http://opensource.org/licenses/BSD-3-Clause
 
 Details on EUROCONTROL: http://www.eurocontrol.int
 """
-import os
+import logging
 
-from flask import send_from_directory, Blueprint
+from flask import Blueprint, send_from_directory, request, current_app
 
 __author__ = "EUROCONTROL (SWIM)"
 
+from geofencing_service_client.models import UASZonesFilter
 
-def _get_folder(name):
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(current_dir, name)
+from geofencing_viewer.utils import handle_geofencing_service_response
+from geofencing_viewer.web_app.helpers import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, QUEUE, \
+    geofencing_subscriber_message_consumer
 
+_logger = logging.getLogger(__name__)
 
 geofencing_viewer_blueprint = Blueprint('geofencing_viewer',
                                         __name__,
                                         template_folder='templates',
                                         static_folder='static')
+
+########
+# STATIC
+########
 
 
 @geofencing_viewer_blueprint.route("/")
@@ -68,3 +74,77 @@ def send_img(path):
 @geofencing_viewer_blueprint.route('/favicon.ico')
 def favicon():
     return send_from_directory('web_app/static/img', 'geofence.png', mimetype='image/png')
+
+
+#####
+# API
+#####
+
+@geofencing_viewer_blueprint.route("/all")
+@handle_geofencing_service_response
+def all_data():
+    subscriptions = get_subscriptions()
+
+    uas_zones_dict = {
+        zone.identifier: zone for zone in get_uas_zones(uas_zones_filter=get_initial_uas_zones_filter())
+    }
+
+    for subscription in subscriptions:
+        sub_zones = get_uas_zones(uas_zones_filter=subscription.uas_zones_filter)
+        for sub_zone in sub_zones:
+            uas_zones_dict[sub_zone.identifier] = sub_zone
+
+    return {
+        'uas_zones': [zone.to_json() for zone in uas_zones_dict.values()],
+        'subscriptions': [sub.to_json() for sub in subscriptions]
+    }
+
+
+@geofencing_viewer_blueprint.route("/subscribe", methods=['POST'])
+@handle_geofencing_service_response
+def subscribe():
+    data = request.get_json()
+    uas_zones_filter = UASZonesFilter.from_json(data['uasZonesFilter'])
+
+    subscription = current_app.geofencing_subscriber.subscribe(
+        uas_zones_filter, message_consumer=geofencing_subscriber_message_consumer)
+
+    _logger.info(f"Subscribed to queue: {subscription.queue}")
+
+    return {
+        'subscriptionID': subscription.id,
+        'publicationLocation': subscription.queue,
+        'active': True,
+        'UASZonesFilter': data['uasZonesFilter']
+    }
+
+
+@geofencing_viewer_blueprint.route("/unsubscribe/<subscription_id>")
+@handle_geofencing_service_response
+def unsubscribe(subscription_id):
+    current_app.geofencing_subscriber.unsubscribe(subscription_id)
+    return {}
+
+
+@geofencing_viewer_blueprint.route("/pause/<subscription_id>")
+@handle_geofencing_service_response
+def pause(subscription_id):
+    current_app.geofencing_subscriber.pause(subscription_id)
+    return {}
+
+
+@geofencing_viewer_blueprint.route("/resume/<subscription_id>")
+@handle_geofencing_service_response
+def resume(subscription_id):
+    current_app.geofencing_subscriber.resume(subscription_id)
+    return {}
+
+
+@geofencing_viewer_blueprint.route("/poll")
+def poll():
+    try:
+        message = QUEUE.pop(0)
+    except IndexError:
+        message = {}
+
+    return message

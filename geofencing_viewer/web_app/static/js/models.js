@@ -92,11 +92,27 @@ var UASZonesList = new Vue({
             return this.uaszones.filter((uaszone) => JSON.stringify(uaszone.data.airspaceVolume.polygon) == JSON.stringify(polygon))[0];
         },
         remove: function(uaszone) {
-            map.removeLayer(uaszone.polygonLayer);
-            this.uaszones.splice(this.uaszones.indexOf(uaszone), 1)
+            if (uaszone != undefined) {
+                map.removeLayer(uaszone.polygonLayer);
+                this.uaszones.splice(this.uaszones.indexOf(uaszone), 1);
+            }
         },
         getByIdentifier(identifier) {
             return this.uaszones.filter((zone) => zone.data.identifier == identifier)[0];
+        },
+        updateUASZones(uasZonesData, subscription) {
+            self=this;
+            uasZonesData.forEach(function(data) {
+                self.add(data);
+                subscription.intersectingUASZonesIdentifiers.push(data.identifier);
+            });
+
+            var updatedIdentifiers = uasZonesData.map((zone) => zone.identifier);
+            var zonesIdentifiersToDelete = subscription.intersectingUASZonesIdentifiers.filter((id) => updatedIdentifiers.indexOf(id) < 0);
+
+            zonesIdentifiersToDelete.forEach(function(id) {
+                self.remove(self.getByIdentifier(id));
+            });
         }
     }
 });
@@ -451,6 +467,7 @@ Vue.component('subscription-modal-item', {
 
         },
         pauseResume: function(subscription) {
+            self=this;
             if (subscription.active) {
                 $.ajax({
                     type: "GET",
@@ -462,15 +479,14 @@ Vue.component('subscription-modal-item', {
                             console.log(result.error)
                             showError("Failed to pause subscription");
                         }
+                        subscription.active = false;
+                        self.$refs.pauseResume.innerHTML = 'Resume';
+                        subscription.polygonLayer.setStyle({color: "black"});
                     },
                 });
 
-                subscription.active = false;
-                this.$refs.pauseResume.innerHTML = 'Resume';
-                subscription.polygonLayer.setStyle({color: "black"});
             }
             else {
-
                 $.ajax({
                     type: "GET",
                     url: "/resume/" + subscription.id,
@@ -481,11 +497,14 @@ Vue.component('subscription-modal-item', {
                             console.log(result.error)
                             showError("Failed to resume subscription");
                         }
+
+                        subscription.active = true;
+                        self.$refs.pauseResume.innerHTML = 'Pause';
+                        subscription.polygonLayer.setStyle({color: "blue"});
+
+                        UASZonesList.updateUASZones(result.uas_zones, subscription);
                     },
                 });
-                subscription.active = true;
-                this.$refs.pauseResume.innerHTML = 'Pause';
-                subscription.polygonLayer.setStyle({color: "blue"});
 
             }
             getModalForSubscription(subscription).modal('hide');

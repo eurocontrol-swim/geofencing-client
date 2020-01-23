@@ -33,11 +33,12 @@ from flask import Blueprint, send_from_directory, request, current_app
 
 __author__ = "EUROCONTROL (SWIM)"
 
-from geofencing_service_client.models import UASZonesFilter
+from geofencing_service_client.models import UASZonesFilter, UASZone
 
 from geofencing_viewer.utils import handle_geofencing_service_response
-from geofencing_viewer.web_app.helpers import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, QUEUE, \
-    geofencing_subscriber_message_consumer
+from geofencing_viewer.web_app.helpers import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, \
+    MESSAGE_QUEUE, SUBSCRIPTIONS, geofencing_subscriber_message_consumer, get_subscription, \
+    get_hashable_uas_zones_filter
 
 _logger = logging.getLogger(__name__)
 
@@ -111,10 +112,12 @@ def subscribe():
 
     _logger.info(f"Subscribed to queue: {subscription.queue}")
 
+    SUBSCRIPTIONS[get_hashable_uas_zones_filter(uas_zones_filter)] = subscription.id
+
     return {
         'subscriptionID': subscription.id,
         'publicationLocation': subscription.queue,
-        'active': True,
+        'active': False,
         'UASZonesFilter': data['uasZonesFilter']
     }
 
@@ -137,13 +140,16 @@ def pause(subscription_id):
 @handle_geofencing_service_response
 def resume(subscription_id):
     current_app.geofencing_subscriber.resume(subscription_id)
-    return {}
+    subscription = get_subscription(subscription_id)
+    uas_zones = get_uas_zones(subscription.uas_zones_filter)
+
+    return {'uas_zones': [UASZone.to_json(zone) for zone in uas_zones]}
 
 
 @geofencing_viewer_blueprint.route("/poll")
 def poll():
     try:
-        message = QUEUE.pop(0)
+        message = MESSAGE_QUEUE.pop(0)
     except IndexError:
         message = {}
 

@@ -30,9 +30,11 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 
 __author__ = "EUROCONTROL (SWIM)"
 
+import json
 import logging
 from datetime import timezone, datetime
-from typing import List
+from functools import partial
+from typing import List, Optional, Dict
 
 import proton
 from flask import current_app
@@ -45,7 +47,11 @@ from swim_backend.local import AppContextProxy
 _logger = logging.getLogger(__name__)
 
 
-QUEUE = []
+# keeps the subscription ids in memory in order to be passed in front-end upon message reception
+SUBSCRIPTIONS: Dict[UASZonesFilter, str] = {}
+
+# keeps the messages coming from the broker until they are picked up upon front-end polling
+MESSAGE_QUEUE = []
 
 
 def _get_geofencing_service_client():
@@ -60,6 +66,10 @@ def _get_geofencing_service_client():
 
 
 gs_client = AppContextProxy(_get_geofencing_service_client)
+
+
+def get_hashable_uas_zones_filter(uas_zones_filter: UASZonesFilter):
+    return json.dumps(uas_zones_filter.to_json())
 
 
 def get_initial_uas_zones_filter():
@@ -90,22 +100,33 @@ def get_subscriptions() -> List[UASZoneSubscriptionReplyObject]:
     return uas_zone_subscriptions_reply.uas_zone_subscriptions
 
 
+def get_subscription(subscription_id: str) -> UASZoneSubscriptionReplyObject:
+    return gs_client.get_subscription_by_id(subscription_id).uas_zone_subscription
+
+
 def get_uas_zones(uas_zones_filter: UASZonesFilter) -> List[UASZone]:
     gs_reply = gs_client.filter_uas_zones(uas_zones_filter=uas_zones_filter)
 
     return gs_reply.uas_zone_list
 
 
-def geofencing_subscriber_message_consumer(message: proton.Message):
+def geofencing_subscriber_message_consumer(message: proton.Message, uas_zones_filter: UASZonesFilter):
     _logger.info(f"Received message: {message.body}")
-    QUEUE.append(message.body)
+    MESSAGE_QUEUE.append({'data': message.body, 'subscription_id': SUBSCRIPTIONS[uas_zones_filter]})
 
 
 def preload_geofencing_subscriber(subscriber: GeofencingSubscriber):
     subscriptions_reply = gs_client.get_subscriptions()
 
     for subscription in subscriptions_reply.uas_zone_subscriptions:
-        subscriber.preload_queue_message_consumer(queue=subscription.publication_location,
-                                                  message_consumer=geofencing_subscriber_message_consumer)
+
+        # keep the subscription_id in memory
+        SUBSCRIPTIONS[get_hashable_uas_zones_filter(subscription.uas_zones_filter)] = subscription.subscription_id
+
+        subscriber.preload_queue_message_consumer(
+            queue=subscription.publication_location,
+            message_consumer=partial(geofencing_subscriber_message_consumer,
+                                     uas_zones_filter=subscription.uas_zones_filter)
+        )
 
         _logger.info(f'Added message_consumer for queue {subscription.publication_location}')

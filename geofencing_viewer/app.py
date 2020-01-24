@@ -33,7 +33,7 @@ from flask import Flask
 from pkg_resources import resource_filename
 from pubsub_facades.geofencing_pubsub import GeofencingSubscriber
 from swim_backend.config import load_app_config
-from geofencing_viewer.web_app.helpers import preload_geofencing_subscriber
+from geofencing_viewer.geofencing_service import preload_geofencing_subscriber
 from geofencing_viewer.web_app.views import geofencing_viewer_blueprint
 
 __author__ = "EUROCONTROL (SWIM)"

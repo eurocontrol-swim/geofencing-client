@@ -30,29 +30,46 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 
 __author__ = "EUROCONTROL (SWIM)"
 
-import logging
-from functools import wraps
+import json
+from typing import Dict, Any
 
-from rest_client.errors import APIError
-
-_logger = logging.getLogger(__name__)
+from geofencing_service_client.models import UASZonesFilter
 
 
-def handle_geofencing_service_response(f):
-    @wraps(f)
-    def decorator(*args, **kwargs):
-        try:
-            response = f(*args, **kwargs)
+""" Holds the subscription ids in memory in order to be passed in front-end upon message reception"""
+SUBSCRIPTIONS: Dict[str, str] = {}
 
-            if response is None:
-                response = {}
+""" Holds the messages coming from the broker until they are picked up upon front-end polling"""
+MESSAGE_QUEUE = []
 
-            response['status'] = 'OK'
-        except APIError as e:
-            _logger.error(str(e))
-            response = {
-                'status': 'NOK',
-                'error': e.detail
-            }
-        return response
-    return decorator
+
+def _get_hashable_uas_zones_filter(uas_zones_filter: UASZonesFilter) -> str:
+    return json.dumps(uas_zones_filter.to_json())
+
+
+def get_subscription(uas_zones_filter: UASZonesFilter) -> str:
+    return SUBSCRIPTIONS[_get_hashable_uas_zones_filter(uas_zones_filter)]
+
+
+def save_subscription(uas_zones_filter: UASZonesFilter, subscription_id: str) -> None:
+    SUBSCRIPTIONS[_get_hashable_uas_zones_filter(uas_zones_filter)] = subscription_id
+
+
+def delete_subscription(subscription_id: str) -> None:
+    for uas_zones_filter, sub_id in SUBSCRIPTIONS.items():
+        if sub_id == subscription_id:
+            del SUBSCRIPTIONS[uas_zones_filter]
+            break
+
+
+def add_queue_message(message: Dict[str, Any]) -> None:
+    MESSAGE_QUEUE.append(message)
+
+
+def remove_queue_message() -> Dict[str, Any]:
+    try:
+        message = MESSAGE_QUEUE.pop(0)
+    except IndexError:
+        message = {}
+
+    return message

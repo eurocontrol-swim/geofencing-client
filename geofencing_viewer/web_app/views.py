@@ -29,17 +29,17 @@ Details on EUROCONTROL: http://www.eurocontrol.int
 """
 import logging
 from functools import partial
+from typing import Dict, List, Any
 
-from flask import Blueprint, send_from_directory, request, current_app
+from flask import Blueprint, send_from_directory, request, current_app as app
 
 __author__ = "EUROCONTROL (SWIM)"
 
 from geofencing_service_client.models import UASZonesFilter, UASZone
 
-from geofencing_viewer.utils import handle_geofencing_service_response
-from geofencing_viewer.web_app.helpers import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, \
-    MESSAGE_QUEUE, SUBSCRIPTIONS, geofencing_subscriber_message_consumer, get_subscription, \
-    get_hashable_uas_zones_filter
+from geofencing_viewer import cache
+from geofencing_viewer.geofencing_service import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, \
+    geofencing_subscriber_message_consumer, get_subscription, handle_geofencing_service_response
 
 _logger = logging.getLogger(__name__)
 
@@ -84,7 +84,11 @@ def favicon():
 
 @geofencing_viewer_blueprint.route("/all")
 @handle_geofencing_service_response
-def all_data():
+def all_data() -> Dict[str, List[Dict]]:
+    """
+    Retrieves existing UASZoneSbscriptons and UASZones (to be used on first load of the page)
+    :return:
+    """
     subscriptions = get_subscriptions()
 
     uas_zones_dict = {
@@ -104,17 +108,22 @@ def all_data():
 
 @geofencing_viewer_blueprint.route("/subscribe", methods=['POST'])
 @handle_geofencing_service_response
-def subscribe():
+def subscribe() -> Dict[str, Any]:
+    """
+    Creates a new subscription in the Geofencing Service
+    :return:
+    """
     data = request.get_json()
     uas_zones_filter = UASZonesFilter.from_json(data['uasZonesFilter'])
 
-    subscription = current_app.geofencing_subscriber.subscribe(
+    subscription = app.geofencing_subscriber.subscribe(
         uas_zones_filter, message_consumer=partial(geofencing_subscriber_message_consumer,
                                                    uas_zones_filter=uas_zones_filter))
 
     _logger.info(f"Subscribed to queue: {subscription.queue}")
 
-    SUBSCRIPTIONS[get_hashable_uas_zones_filter(uas_zones_filter)] = subscription.id
+    # keep the subscription id in memory
+    cache.save_subscription(uas_zones_filter, subscription.id)
 
     return {
         'subscriptionID': subscription.id,
@@ -126,33 +135,52 @@ def subscribe():
 
 @geofencing_viewer_blueprint.route("/unsubscribe/<subscription_id>")
 @handle_geofencing_service_response
-def unsubscribe(subscription_id):
-    current_app.geofencing_subscriber.unsubscribe(subscription_id)
+def unsubscribe(subscription_id) -> dict:
+    """
+    Deletes the subscription in Geofencing Service
+
+    :param subscription_id:
+    :return:
+    """
+    app.geofencing_subscriber.unsubscribe(subscription_id)
     return {}
 
 
 @geofencing_viewer_blueprint.route("/pause/<subscription_id>")
 @handle_geofencing_service_response
-def pause(subscription_id):
-    current_app.geofencing_subscriber.pause(subscription_id)
+def pause(subscription_id) -> dict:
+    """
+    Pauses the subscription in Geofencing Service
+
+    :param subscription_id:
+    :return:
+    """
+    app.geofencing_subscriber.pause(subscription_id)
     return {}
 
 
 @geofencing_viewer_blueprint.route("/resume/<subscription_id>")
 @handle_geofencing_service_response
-def resume(subscription_id):
-    current_app.geofencing_subscriber.resume(subscription_id)
-    subscription = get_subscription(subscription_id)
-    uas_zones = get_uas_zones(subscription.uas_zones_filter)
+def resume(subscription_id) -> Dict[str, List[Dict]]:
+    """
+    Resumes the subscription in Geofencing Service and at the same time it tries to keep up to date with the underlying
+    UASZones (created and deleted ones)
+    :param subscription_id:
+    :return:
+    """
+    app.geofencing_subscriber.resume(subscription_id)
 
-    return {'uas_zones': [UASZone.to_json(zone) for zone in uas_zones]}
+    subscription = get_subscription(subscription_id)
+
+    current_uas_zones = get_uas_zones(subscription.uas_zones_filter)
+
+    return {'uas_zones': [UASZone.to_json(zone) for zone in current_uas_zones]}
 
 
 @geofencing_viewer_blueprint.route("/poll")
 def poll():
-    try:
-        message = MESSAGE_QUEUE.pop(0)
-    except IndexError:
-        message = {}
-
-    return message
+    """
+    Removes the first item in the queue of messages that are kept in memory and returns it
+    :return:
+    """
+    return cache.remove_queue_message()

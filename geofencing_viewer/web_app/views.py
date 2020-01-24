@@ -28,6 +28,7 @@ http://opensource.org/licenses/BSD-3-Clause
 Details on EUROCONTROL: http://www.eurocontrol.int
 """
 import logging
+from functools import partial
 
 from flask import Blueprint, send_from_directory, request, current_app
 
@@ -108,7 +109,8 @@ def subscribe():
     uas_zones_filter = UASZonesFilter.from_json(data['uasZonesFilter'])
 
     subscription = current_app.geofencing_subscriber.subscribe(
-        uas_zones_filter, message_consumer=geofencing_subscriber_message_consumer)
+        uas_zones_filter, message_consumer=partial(geofencing_subscriber_message_consumer,
+                                                   uas_zones_filter=uas_zones_filter))
 
     _logger.info(f"Subscribed to queue: {subscription.queue}")
 

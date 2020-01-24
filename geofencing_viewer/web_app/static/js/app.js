@@ -40,10 +40,10 @@ $(document).ready(function(){
                             var subscription = subscriptionsList.getById(result.subscription_id);
                             subscription.intersectingUASZonesIdentifiers.push(result.data.uas_zone.identifier)
                         }
-                        else if (result.message_type == 'UAS_ZONE_DELETION') {
+                        else if (result.data.message_type == 'UAS_ZONE_DELETION') {
                             UASZonesList.remove(UASZonesList.getByIdentifier(result.data.uas_zone_identifier));
 
-                            subscription = subscriptionsList.getById(result.subscription_id);
+                            subscription = subscriptionsList.getById(result.data.subscription_id);
                             subscription.intersectingUASZonesIdentifiers = subscription.intersectingUASZonesIdentifiers.filter((id) => id != result.data.uas_zone_identifier);
                         }
                     }

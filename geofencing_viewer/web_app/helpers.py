@@ -112,7 +112,7 @@ def get_uas_zones(uas_zones_filter: UASZonesFilter) -> List[UASZone]:
 
 def geofencing_subscriber_message_consumer(message: proton.Message, uas_zones_filter: UASZonesFilter):
     _logger.info(f"Received message: {message.body}")
-    MESSAGE_QUEUE.append({'data': message.body, 'subscription_id': SUBSCRIPTIONS[uas_zones_filter]})
+    MESSAGE_QUEUE.append({'data': message.body, 'subscription_id': SUBSCRIPTIONS[get_hashable_uas_zones_filter(uas_zones_filter)]})
 
 
 def preload_geofencing_subscriber(subscriber: GeofencingSubscriber):

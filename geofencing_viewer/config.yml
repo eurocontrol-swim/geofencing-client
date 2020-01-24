@@ -67,3 +67,5 @@ INITIAL_UAS_ZONES_FILTER:
   regions:
     - 1
   requestID: '1'
+
+POLLING_INTERVAL_IN_SEC: 1

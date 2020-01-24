@@ -82,9 +82,9 @@ def favicon():
 # API
 #####
 
-@geofencing_viewer_blueprint.route("/all")
+@geofencing_viewer_blueprint.route("/init")
 @handle_geofencing_service_response
-def all_data() -> Dict[str, List[Dict]]:
+def init() -> Dict[str, List[Dict]]:
     """
     Retrieves existing UASZoneSbscriptons and UASZones (to be used on first load of the page)
     :return:
@@ -102,7 +102,8 @@ def all_data() -> Dict[str, List[Dict]]:
 
     return {
         'uas_zones': [zone.to_json() for zone in uas_zones_dict.values()],
-        'subscriptions': [sub.to_json() for sub in subscriptions]
+        'subscriptions': [sub.to_json() for sub in subscriptions],
+        'polling_interval': app.config['POLLING_INTERVAL_IN_SEC'] * 1000
     }
 
 

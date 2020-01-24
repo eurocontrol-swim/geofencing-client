@@ -82,31 +82,17 @@ def handle_geofencing_service_response(f):
 
 
 def get_initial_uas_zones_filter():
+    """
+    Loads the initial uas zones filter from config which will be used to load the initial uas zones from geofencing
+    service
+    :return:
+    """
     try:
         _logger.info(current_app.config['INITIAL_UAS_ZONES_FILTER'])
         return UASZonesFilter.from_json(current_app.config['INITIAL_UAS_ZONES_FILTER'])
     except Exception as e:
         _logger.exception(str(e))
         raise APIError(detail=str(e), status_code=500)
-    # return UASZonesFilter(
-    #     airspace_volume=AirspaceVolume(
-    #         polygon=[
-    #             Point(lat=50.901767, lon=4.371125),
-    #             Point(lat=50.866953, lon=4.224330),
-    #             Point(lat=50.788595, lon=4.342881),
-    #             Point(lat=50.846430, lon=4.535647),
-    #             Point(lat=50.901767, lon=4.371125)
-    #         ],
-    #         lower_limit_in_m=0,
-    #         upper_limit_in_m=100000,
-    #         upper_vertical_reference=CodeVerticalReferenceType.AGL,
-    #         lower_vertical_reference=CodeVerticalReferenceType.AGL
-    #     ),
-    #     start_date_time=datetime(2020, 1, 1, tzinfo=timezone.utc),
-    #     end_date_time=datetime(2021, 1, 1, tzinfo=timezone.utc),
-    #     regions=[1],
-    #     request_id='1'
-    # )
 
 
 def get_subscriptions() -> List[UASZoneSubscriptionReplyObject]:
@@ -131,6 +117,11 @@ def geofencing_subscriber_message_consumer(message: proton.Message, uas_zones_fi
 
 
 def preload_geofencing_subscriber(subscriber: GeofencingSubscriber):
+    """
+    Fetches the existing subscriptions and creates the necessary AMQP1.0 receivers on their queues
+    NOTE: to be used upon app initialization
+    :param subscriber:
+    """
     subscriptions_reply = gs_client.get_subscriptions()
 
     for subscription in subscriptions_reply.uas_zone_subscriptions:

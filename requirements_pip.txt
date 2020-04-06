@@ -1,13 +1,9 @@
 pytest
 pytest-cov
 pyyaml
+Flask
 python-dateutil
-gevent
-gevent-websocket
-eventlet
 gunicorn
-flask-socketio
-websockets
 python-qpid_proton
 git+https://git@github.com/eurocontrol-swim/geofencing-service-client.git
 git+https://git@github.com/eurocontrol-swim/rest-client.git

@@ -4,13 +4,10 @@ dependencies:
   - pytest
   - pytest-cov
   - pyyaml
+  - Flask
   - python-dateutil
   - pip:
-    - gevent
-    - gevent-websocket
     - gunicorn
-    - flask-socketio
-    - websockets
     - geojson
     - git+https://git@github.com/eurocontrol-swim/geofencing-service-client.git
     - git+https://git@github.com/eurocontrol-swim/rest-client.git

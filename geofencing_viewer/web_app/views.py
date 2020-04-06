@@ -136,7 +136,7 @@ def subscribe() -> Dict[str, Any]:
 
 @geofencing_viewer_blueprint.route("/unsubscribe/<subscription_id>")
 @handle_geofencing_service_response
-def unsubscribe(subscription_id) -> dict:
+def unsubscribe(subscription_id: str) -> dict:
     """
     Deletes the subscription in Geofencing Service
 
@@ -144,12 +144,15 @@ def unsubscribe(subscription_id) -> dict:
     :return:
     """
     app.geofencing_subscriber.unsubscribe(subscription_id)
+
+    cache.delete_subscription(subscription_id)
+
     return {}
 
 
 @geofencing_viewer_blueprint.route("/pause/<subscription_id>")
 @handle_geofencing_service_response
-def pause(subscription_id) -> dict:
+def pause(subscription_id: str) -> dict:
     """
     Pauses the subscription in Geofencing Service
 
@@ -157,12 +160,13 @@ def pause(subscription_id) -> dict:
     :return:
     """
     app.geofencing_subscriber.pause(subscription_id)
+
     return {}
 
 
 @geofencing_viewer_blueprint.route("/resume/<subscription_id>")
 @handle_geofencing_service_response
-def resume(subscription_id) -> Dict[str, List[Dict]]:
+def resume(subscription_id: str) -> Dict[str, List[Dict]]:
     """
     Resumes the subscription in Geofencing Service and at the same time it tries to keep up to date with the underlying
     UASZones (created and deleted ones)
@@ -179,7 +183,7 @@ def resume(subscription_id) -> Dict[str, List[Dict]]:
 
 
 @geofencing_viewer_blueprint.route("/poll")
-def poll():
+def poll() -> dict:
     """
     Removes the first item in the queue of messages that are kept in memory and returns it
     :return:

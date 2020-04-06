@@ -1,4 +1,4 @@
-FROM geofencing-base
+FROM swim-base
 
 LABEL maintainer="SWIM EUROCONTROL <http://www.eurocontrol.int>"
 

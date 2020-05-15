@@ -72,7 +72,7 @@
 			  </div>
 			  <hr>
 
-			  <h5>Applicable time period</h5>
+			  <h5>Time period</h5>
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-3">
 
@@ -83,10 +83,6 @@
 					<label for="endDateTime" class="col-form-label">End Date Time</label>
 					<input v-model="uasZonesFilter.endDateTime" type="datetime-local" class="form-control" id="endDateTime" required>
 				  </div>
-				  <div class="col-md-4 mb-3">
-					<label for="updatedAfterDateTime" class="col-form-label">Updated After Date Time</label>
-					<input v-model="uasZonesFilter.updatedAfterDateTime" type="datetime-local" class="form-control" id="updatedAfterDateTime">
-				  </div>
 			  </div>
 			  <hr>
 
@@ -95,10 +91,6 @@
 				  <div class="col-md-4 mb-6">
 					<label for="regions" class="col-form-label">Regions</label>
 					<input v-model="uasZonesFilter.regions" type="text" class="form-control" id="regions" placeholder="Regions (comma separated)">
-				  </div>
-				  <div class="col-md-4 mb-6">
-					<label for="requestID" class="col-form-label">Request ID</label>
-					<input v-model="uasZonesFilter.requestID" type="text" class="form-control" id="requestID" placeholder="Request ID" required>
 				  </div>
 			  </div>
 			  </div>

@@ -25,7 +25,7 @@ var positronLabels = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_only_la
 }).addTo(map);
 
 var center = [50.8385427, 4.3445355]
-map.setView(center, 13);
+map.setView(center, 12);
 map.scrollWheelZoom.disable();
 
 ////////////////////
@@ -49,7 +49,7 @@ var drawPluginOptions = {
     },
     // disable toolbar item by setting it to false
     polyline: false,
-    circle: false, // Turns off this drawing tool
+//    circle: false, // Turns off this drawing tool
     marker: false,
     circlemarker: false,
     rectangle: false

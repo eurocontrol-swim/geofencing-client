@@ -9,18 +9,15 @@ var subscriptionForm = new Vue({
             airspaceVolume: {
                 upperLimit: "10000",
                 lowerLimit: "0",
-                upperVerticalReference: "WGS84",
-                lowerVerticalReference: "WGS84",
-                polygon: null
+                upperVerticalReference: "AGL",
+                lowerVerticalReference: "AGL",
+                horizontalProjection: null
             },
             startDateTime: getDateString(getCurrentDate(0)),
             endDateTime: getDateString(getCurrentDate(1)),
-            updatedAfterDateTime: "",
             regions: "",
-            requestID: ""
         },
         limitReferenceOptions: [
-            { text: 'WGS84', value: 'WGS84' },
             { text: 'AGL', value: 'AGL' },
             { text: 'AMSL', value: 'AMSL' }
         ]
@@ -28,7 +25,7 @@ var subscriptionForm = new Vue({
     methods: {
         init: function(polygonLayer) {
             this.polygonLayer = polygonLayer;
-            this.uasZonesFilter.airspaceVolume.polygon = pointListFromGeoJSONCoordinates(polygonLayer.toGeoJSON().geometry.coordinates[0]);
+            this.uasZonesFilter.airspaceVolume.horizontalProjection = polygonLayer.toGeoJSON().geometry.coordinates[0];
             $('#subscriptionFormModal').modal('toggle');
         },
         subscribe: function() {
@@ -61,7 +58,7 @@ var subscriptionForm = new Vue({
         toJSON: function() {
             return {
                 airspaceVolume: {
-                    polygon: this.uasZonesFilter.airspaceVolume.polygon,
+                    horizontalProjection: this.uasZonesFilter.airspaceVolume.horizontalProjection,
                     upperLimit: parseInt(this.uasZonesFilter.airspaceVolume.upperLimit),
                     lowerLimit: parseInt(this.uasZonesFilter.airspaceVolume.lowerLimit),
                     upperVerticalReference: this.uasZonesFilter.airspaceVolume.upperVerticalReference,

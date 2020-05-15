@@ -45,6 +45,11 @@ function geojsonCoordinatesFromPointList(pointList) {
     return pointList.map(p => [p['LAT'], p['LON']])
 }
 
+function polygonLatLonToLonLat(coordinates) {
+    return coordinates.map((coord) => coord.map((latlon) => [latlon[1], latlon[0]]))
+}
+
+
 function isNullObject(obj) {
     return (Object.entries(obj).length === 0 && obj.constructor === Object)
 }

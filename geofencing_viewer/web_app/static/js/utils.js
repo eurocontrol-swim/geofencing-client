@@ -36,19 +36,14 @@ function removeTimeZoneInfo(dateString) {
     return [date, time].join('T')
 }
 
-function pointListFromGeoJSONCoordinates(geoJSONCoordinates) {
-    return geoJSONCoordinates.map(c => ({LON: c[0], LAT: c[1]}));
+
+function latLonFromLonLat(coordinates) {
+    return [coordinates[1], coordinates[0]]
 }
 
-
-function geojsonCoordinatesFromPointList(pointList) {
-    return pointList.map(p => [p['LAT'], p['LON']])
+function polygonLatLonFromLonLat(coordinates) {
+    return coordinates.map((coord) => coord.map(latLonFromLonLat))
 }
-
-function polygonLatLonToLonLat(coordinates) {
-    return coordinates.map((coord) => coord.map((latlon) => [latlon[1], latlon[0]]))
-}
-
 
 function isNullObject(obj) {
     return (Object.entries(obj).length === 0 && obj.constructor === Object)

@@ -48,14 +48,9 @@ SUBSCRIPTION-MANAGER-API:
 INITIAL_UAS_ZONES_FILTER:
   airspaceVolume:
     horizontalProjection:
-      type: 'Polygon'
-      coordinates: [[
-        [4.371125, 50.901767],
-        [4.224330, 50.866953],
-        [4.342881, 50.788595],
-        [4.535647, 50.846430],
-        [4.371125, 50.901767]
-      ]]
+      type: 'Circle'
+      center: [4.503788, 50.826384]
+      radius: 20000
     uomDimensions: 'M'
     lowerLimit: 0
     upperLimit: 100000

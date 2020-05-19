@@ -34,7 +34,7 @@
 			<div class="modal-content">
 			<form id="subscriptionForm" v-on:submit.prevent="subscribe">
 			  <div class="modal-header">
-				<h5 class="modal-title" id="exampleModalLabel">Subscription to UAS Zones updates</h5>
+				<h5 class="modal-title" id="exampleModalLabel">New subscription</h5>
 				<button type="button" class="close" data-dismiss="modal" aria-label="Close" v-on:click="cancel()">
 				  <span aria-hidden="true" >&times;</span>
 				</button>
@@ -43,14 +43,18 @@
 
 			  <h5>Airspace Volume</h5>
 			  <div class="form-row form-group">
-				  <div class="col-md-4 mb-6">
-					<label for="upperLimit" class="col-form-label">Upper Limit (meters)</label>
+				  <div class="col-md-4 mb-3">
+					<label for="upperLimit" class="col-form-label">Upper Limit</label>
 					<input type="text" v-model="uasZonesFilter.airspaceVolume.upperLimit" class="form-control" id="upperLimit" required>
 				  </div>
-				  <div class="col-md-4 mb-6">
-					<label for="upperVerticalReference" class="col-form-label">Upper Limit Reference</label>
-					<select v-model="uasZonesFilter.airspaceVolume.upperVerticalReference" id="upperVerticalReference" name="Upper Vertical Reference" class="form-control">
-						<option  v-for="option in limitReferenceOptions" v-bind:value="option.value">
+				  <div class="col-md-4 mb-3">
+					<label for="lowerLimit" class="col-form-label">Lower Limit</label>
+					<input type="text" v-model="uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" id="lowerLimit" required>
+				  </div>
+				  <div class="col-md-4 mb-3">
+					<label for="uomDimensions" class="col-form-label">UOM Dimensions</label>
+					<select v-model="uasZonesFilter.airspaceVolume.uomDimensions" id="uomDimensions" name="UOM Dimensions" class="form-control">
+						  <option v-for="option in uomDimensionsOptions" v-bind:value="option.value">
 							  {{ option.text }}
 						  </option>
 					</select>
@@ -58,8 +62,12 @@
 				</div>
 			  <div class="form-row form-group">
 				  <div class="col-md-4 mb-6">
-					<label for="lowerLimit" class="col-form-label">Lower Limit (meters)</label>
-					<input type="text" v-model="uasZonesFilter.airspaceVolume.lowerLimit" class="form-control" id="lowerLimit" required>
+					<label for="upperVerticalReference" class="col-form-label">Upper Limit Reference</label>
+					<select v-model="uasZonesFilter.airspaceVolume.upperVerticalReference" id="upperVerticalReference" name="Upper Vertical Reference" class="form-control">
+						<option  v-for="option in limitReferenceOptions" v-bind:value="option.value">
+							  {{ option.text }}
+						  </option>
+					</select>
 				  </div>
 				  <div class="col-md-4 mb-6">
 					<label for="lowerVerticalReference" class="col-form-label">Lower Limit Reference</label>

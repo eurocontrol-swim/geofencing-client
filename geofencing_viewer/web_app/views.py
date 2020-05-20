@@ -38,8 +38,9 @@ __author__ = "EUROCONTROL (SWIM)"
 from geofencing_service_client.models import UASZonesFilter, UASZone
 
 from geofencing_viewer import cache
-from geofencing_viewer.geofencing_service import get_subscriptions, get_uas_zones, get_initial_uas_zones_filter, \
-    geofencing_subscriber_message_consumer, get_subscription, handle_geofencing_service_response
+from geofencing_viewer.geofencing_service import get_subscriptions, get_uas_zones, \
+    get_initial_uas_zones_filter, geofencing_subscriber_message_consumer, get_subscription, \
+    handle_geofencing_service_response
 
 _logger = logging.getLogger(__name__)
 

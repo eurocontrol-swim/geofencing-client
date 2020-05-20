@@ -33,16 +33,13 @@ $(document).ready(function(){
                         success : function(result) {
                             if (!(Object.keys(result).length === 0 && result.constructor === Object)) {
                                 console.log(result);
+                                var subscription = subscriptionsList.getById(result.subscription_id);
                                 if (result.data.message_type == 'UAS_ZONE_CREATION') {
                                     UASZonesList.add(result.data.uas_zone);
-
-                                    var subscription = subscriptionsList.getById(result.subscription_id);
                                     subscription.intersectingUASZonesIdentifiers.push(result.data.uas_zone.identifier)
                                 }
                                 else if (result.data.message_type == 'UAS_ZONE_DELETION') {
                                     UASZonesList.remove(UASZonesList.getByIdentifier(result.data.uas_zone_identifier));
-
-                                    subscription = subscriptionsList.getById(result.data.subscription_id);
                                     subscription.intersectingUASZonesIdentifiers = subscription.intersectingUASZonesIdentifiers.filter((id) => id != result.data.uas_zone_identifier);
                                 }
                             }

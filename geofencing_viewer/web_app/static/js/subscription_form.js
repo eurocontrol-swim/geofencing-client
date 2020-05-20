@@ -4,31 +4,42 @@
 var subscriptionForm = new Vue({
     el: '#subscriptionForm',
     data: {
-        polygonLayer: null,
+        mapLayer: null,
         uasZonesFilter: {
             airspaceVolume: {
+                uomDimensions: "M",
                 upperLimit: "10000",
                 lowerLimit: "0",
-                upperVerticalReference: "WGS84",
-                lowerVerticalReference: "WGS84",
-                polygon: null
+                upperVerticalReference: "AGL",
+                lowerVerticalReference: "AGL",
+                horizontalProjection: null
             },
             startDateTime: getDateString(getCurrentDate(0)),
             endDateTime: getDateString(getCurrentDate(1)),
-            updatedAfterDateTime: "",
             regions: "",
-            requestID: ""
         },
+        uomDimensionsOptions: [
+            { text: 'METERS', value: 'M'},
+            { text: 'FEET', value: 'FT'}
+        ],
         limitReferenceOptions: [
-            { text: 'WGS84', value: 'WGS84' },
             { text: 'AGL', value: 'AGL' },
             { text: 'AMSL', value: 'AMSL' }
         ]
     },
     methods: {
-        init: function(polygonLayer) {
-            this.polygonLayer = polygonLayer;
-            this.uasZonesFilter.airspaceVolume.polygon = pointListFromGeoJSONCoordinates(polygonLayer.toGeoJSON().geometry.coordinates[0]);
+        init: function(mapLayer) {
+            var layerGeoJson = mapLayer.toGeoJSON().geometry;
+            if (layerGeoJson.type === 'Point') {
+                layerGeoJson = {
+                    type: 'Circle',
+                    radius: mapLayer.getRadius(),
+                    center: layerGeoJson.coordinates
+                }
+            }
+            this.uasZonesFilter.airspaceVolume.horizontalProjection = layerGeoJson;
+
+            this.mapLayer = mapLayer;
             $('#subscriptionFormModal').modal('toggle');
         },
         subscribe: function() {
@@ -40,7 +51,7 @@ var subscriptionForm = new Vue({
                 contentType: "application/json; charset=utf-8",
                 data : JSON.stringify({uasZonesFilter: this.toJSON()}),
                 success : function(result) {
-                    map.removeLayer(self.polygonLayer);
+                    map.removeLayer(self.mapLayer);
 
                     if (result.status == 'NOK') {
                         console.log(result.error)
@@ -56,12 +67,13 @@ var subscriptionForm = new Vue({
 
         },
         cancel: function() {
-            map.removeLayer(this.subscription.polygonLayer);
+            map.removeLayer(this.mapLayer);
         },
         toJSON: function() {
             return {
                 airspaceVolume: {
-                    polygon: this.uasZonesFilter.airspaceVolume.polygon,
+                    uomDimensions: this.uasZonesFilter.airspaceVolume.uomDimensions,
+                    horizontalProjection: this.uasZonesFilter.airspaceVolume.horizontalProjection,
                     upperLimit: parseInt(this.uasZonesFilter.airspaceVolume.upperLimit),
                     lowerLimit: parseInt(this.uasZonesFilter.airspaceVolume.lowerLimit),
                     upperVerticalReference: this.uasZonesFilter.airspaceVolume.upperVerticalReference,
@@ -69,9 +81,7 @@ var subscriptionForm = new Vue({
                 },
                 startDateTime: this.uasZonesFilter.startDateTime + getCurrentTimezoneString(),
                 endDateTime: this.uasZonesFilter.endDateTime + getCurrentTimezoneString(),
-                updatedAfterDateTime: this.uasZonesFilter.updatedAfterDateTime,
                 regions: this.uasZonesFilter.regions === "" ? [] : this.uasZonesFilter.regions.split(",").map(x => parseInt(x)),
-                requestID: this.uasZonesFilter.requestID
             }
         }
     }

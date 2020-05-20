@@ -24,8 +24,8 @@ var positronLabels = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_only_la
     pane: 'labels'
 }).addTo(map);
 
-var center = [50.8385427, 4.3445355]
-map.setView(center, 13);
+var center = [50.824713, 4.514118]
+map.setView(center, 12);
 map.scrollWheelZoom.disable();
 
 ////////////////////
@@ -43,13 +43,9 @@ var drawPluginOptions = {
         color: '#e1e100', // Color the shape will turn when intersects
         message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
       }
-//      shapeOptions: {
-//        color: '#97009c'
-//      }
     },
     // disable toolbar item by setting it to false
     polyline: false,
-    circle: false, // Turns off this drawing tool
     marker: false,
     circlemarker: false,
     rectangle: false

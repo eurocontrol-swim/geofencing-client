@@ -98,11 +98,11 @@ def get_initial_uas_zones_filter():
 def get_subscriptions() -> List[UASZoneSubscriptionReplyObject]:
     uas_zone_subscriptions_reply = gs_client.get_subscriptions()
 
-    return uas_zone_subscriptions_reply.uas_zone_subscriptions
+    return uas_zone_subscriptions_reply.subscriptions
 
 
 def get_subscription(subscription_id: str) -> UASZoneSubscriptionReplyObject:
-    return gs_client.get_subscription_by_id(subscription_id).uas_zone_subscription
+    return gs_client.get_subscription_by_id(subscription_id).subscription
 
 
 def get_uas_zones(uas_zones_filter: UASZonesFilter) -> List[UASZone]:
@@ -124,7 +124,7 @@ def preload_geofencing_subscriber(subscriber: GeofencingSubscriber):
     """
     subscriptions_reply = gs_client.get_subscriptions()
 
-    for subscription in subscriptions_reply.uas_zone_subscriptions:
+    for subscription in subscriptions_reply.subscriptions:
 
         # keep the subscription id in memory
         cache.save_subscription(subscription.uas_zones_filter, subscription.subscription_id)

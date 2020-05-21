@@ -25,7 +25,7 @@ var positronLabels = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_only_la
 }).addTo(map);
 
 var center = [50.824713, 4.514118]
-map.setView(center, 12);
+map.setView(center, 11);
 map.scrollWheelZoom.disable();
 
 ////////////////////

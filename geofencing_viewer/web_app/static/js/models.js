@@ -27,7 +27,11 @@ class UASZone {
         this.data.geometry.forEach((geo) => {
             const projection = geo.horizontalProjection;
             if (projection.type == 'Circle') {
-                mapLayer = L.circle(latLonFromLonLat(projection.center), {radius: projection.radius});
+                var radius = projection.radius;
+                if (geo.uomDimensions === 'FT') {
+                    radius *= FEET_TO_METERS_RATIO;
+                }
+                mapLayer = L.circle(latLonFromLonLat(projection.center), {radius: radius});
             }
             else {
                 const coordsLonLat = polygonLatLonFromLonLat(projection.coordinates)

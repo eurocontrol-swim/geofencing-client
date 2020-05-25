@@ -30,10 +30,15 @@ var subscriptionForm = new Vue({
     methods: {
         init: function(mapLayer) {
             var layerGeoJson = mapLayer.toGeoJSON().geometry;
+
             if (layerGeoJson.type === 'Point') {
+                var radius = mapLayer.getRadius();
+                if (this.uasZonesFilter.airspaceVolume.uomDimensions === 'FT') {
+                    radius *= METERS_TO_FEET_RATIO;
+                }
                 layerGeoJson = {
                     type: 'Circle',
-                    radius: mapLayer.getRadius(),
+                    radius: radius,
                     center: layerGeoJson.coordinates
                 }
             }

@@ -1,5 +1,8 @@
 "use strict"
 
+const METERS_TO_FEET_RATIO = 3.28084;
+const FEET_TO_METERS_RATIO = 0.3048;
+
 function getCurrentDate(monthsOffset) {
     var date = new Date();
     date.setMonth(date.getMonth() + monthsOffset)
